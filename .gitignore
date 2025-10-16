@@ -1,0 +1,25 @@
+# Configuration files with sensitive data
+.jira-config.yaml
+*.local.yaml
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Drafts and work-in-progress (project-specific content)
+Drafts/
+memory/

@@ -1,0 +1,38 @@
+# Example Jira Configuration File
+# Copy this to .jira-config.yaml and fill in your values
+
+# Configuration for different Jira environments
+# You can define multiple environments (e.g., staging, production, dev)
+
+staging:
+  # Jira instance URL
+  url: "https://your-jira-instance.example.com"
+
+  # API token for authentication
+  # Generate from: Jira > Profile > Personal Access Tokens
+  token: "your-api-token-here"
+
+  # Optional: HTTP proxy configuration
+  # Uncomment and configure if your Jira instance requires proxy access
+  # proxy: "http://proxy.example.com:3128"
+
+production:
+  url: "https://jira.example.com"
+  token: "your-production-api-token-here"
+  # No proxy needed for this environment
+
+# Custom field mappings (optional)
+# If your Jira instance uses custom fields, define them here
+# Find field IDs by viewing an issue in the API or using the 'fields' command
+custom_fields:
+  acceptance_criteria: "customfield_10001"
+  epic_name: "customfield_10002"
+  parent_link: "customfield_10003"
+  epic_link: "customfield_10004"
+
+# Security level configuration (optional)
+# Define security level IDs for your Jira instance
+security_levels:
+  default: "10000"  # Default security level ID
+  confidential: "10001"
+  public: "10002"
