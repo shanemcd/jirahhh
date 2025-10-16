@@ -40,6 +40,14 @@ Then use the CLI directly:
 jirahhh create --help
 ```
 
+## Prerequisites
+
+- **pandoc**: Required for automatic Markdown to Jira wiki markup conversion
+  - Install on macOS: `brew install pandoc`
+  - Install on Ubuntu/Debian: `sudo apt-get install pandoc`
+  - Install on Fedora: `sudo dnf install pandoc`
+  - See [pandoc.org](https://pandoc.org/installing.html) for other platforms
+
 ## Configuration
 
 Copy `.jira-config.example.yaml` to `.jira-config.yaml` and configure your Jira instances:
