@@ -3,6 +3,7 @@ name = "jirahhh"
 version = "0.1.0"
 description = "Utilities for creating and managing Jira issues with proper formatting and markdown support"
 readme = "README.md"
+license = "Apache-2.0"
 requires-python = ">=3.8"
 dependencies = [
     "jira>=3.5.0",
