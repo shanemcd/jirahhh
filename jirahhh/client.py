@@ -35,20 +35,38 @@ def get_jira_client(jira_url: str, api_token: str, proxy_url: str = None) -> JIR
 
 def load_config(config_path: Path = None) -> dict:
     """
-    Load configuration from .jira-config.yaml.
+    Load configuration from config file.
+
+    Checks locations in this order:
+    1. Explicit config_path if provided
+    2. ~/.config/jirahhh/config.yaml
+    3. .jira-config.yaml in current directory
 
     Args:
-        config_path: Optional path to config file. Defaults to .jira-config.yaml in current directory.
+        config_path: Optional explicit path to config file
 
     Returns:
         Configuration dictionary
     """
-    if config_path is None:
-        config_path = Path(".jira-config.yaml")
+    if config_path is not None:
+        # Explicit path provided - use it
+        config_path = Path(config_path)
+        if config_path.exists():
+            with open(config_path, "r") as f:
+                return yaml.safe_load(f)
+        return {}
 
-    if config_path.exists():
-        with open(config_path, "r") as f:
-            return yaml.safe_load(f)
+    # Check standard locations
+    locations = [
+        Path.home() / ".config" / "jirahhh" / "config.yaml",
+        Path(".jira-config.yaml"),
+    ]
+
+    for location in locations:
+        if location.exists():
+            with open(location, "r") as f:
+                return yaml.safe_load(f)
+
     return {}
 
 

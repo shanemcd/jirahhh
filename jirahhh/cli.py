@@ -48,7 +48,7 @@ def cmd_create(args):
             sys.exit(1)
 
     # Load configuration
-    config = load_config()
+    config = load_config(args.config if hasattr(args, 'config') else None)
 
     # Get API token
     try:
@@ -122,7 +122,7 @@ def cmd_update(args):
             sys.exit(1)
 
     # Load configuration
-    config = load_config()
+    config = load_config(args.config if hasattr(args, 'config') else None)
 
     # Get API token
     try:
@@ -170,7 +170,7 @@ def cmd_update(args):
 def cmd_view(args):
     """Handle the 'view' subcommand."""
     # Load configuration
-    config = load_config()
+    config = load_config(args.config if hasattr(args, 'config') else None)
 
     # Get API token
     try:
@@ -216,7 +216,7 @@ def cmd_view(args):
 def cmd_search(args):
     """Handle the 'search' subcommand."""
     # Load configuration
-    config = load_config()
+    config = load_config(args.config if hasattr(args, 'config') else None)
 
     # Get API token
     try:
@@ -256,7 +256,7 @@ def cmd_search(args):
 def cmd_fields(args):
     """Handle the 'fields' subcommand."""
     # Load configuration
-    config = load_config()
+    config = load_config(args.config if hasattr(args, 'config') else None)
 
     # Get API token
     try:
@@ -294,7 +294,7 @@ def cmd_fields(args):
 def cmd_api(args):
     """Handle the 'api' subcommand."""
     # Load configuration
-    config = load_config()
+    config = load_config(args.config if hasattr(args, 'config') else None)
 
     # Get API token
     try:
@@ -344,6 +344,12 @@ def main():
     parser = argparse.ArgumentParser(
         prog="jirahhh",
         description="Manage Jira issues with proper wiki markup formatting",
+    )
+
+    # Global config option
+    parser.add_argument(
+        "--config",
+        help="Path to config file (default: ~/.config/jirahhh/config.yaml or .jira-config.yaml)",
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Subcommands")
