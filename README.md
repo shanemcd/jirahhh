@@ -138,6 +138,86 @@ jirahhh fields \
   --type Epic
 ```
 
+### Make generic API calls
+
+For advanced use cases not covered by the built-in commands, use the `api` subcommand to call any Jira REST API endpoint directly:
+
+```bash
+# GET request - fetch comments on an issue
+jirahhh api GET /rest/api/2/issue/PROJ-123/comment \
+  --env production
+
+# POST request - add a comment to an issue
+jirahhh api POST /rest/api/2/issue/PROJ-123/comment \
+  --env production \
+  --data '{"body": "This is a comment added via the API"}'
+
+# PUT request - update a comment
+jirahhh api PUT /rest/api/2/issue/PROJ-123/comment/12345 \
+  --env production \
+  --data '{"body": "Updated comment text"}'
+
+# DELETE request - delete a comment
+jirahhh api DELETE /rest/api/2/issue/PROJ-123/comment/12345 \
+  --env production
+```
+
+Supported HTTP methods: `GET`, `POST`, `PUT`, `DELETE`
+
+## Tips
+
+### Create a shell alias
+
+For frequent use, create an alias in your shell configuration:
+
+```bash
+alias jirahhh='uvx --from "git+https://github.com/shanemcd/jirahhh" jirahhh'
+```
+
+Then use it directly:
+
+```bash
+jirahhh view PROJ-123 --env production
+```
+
+### Draft workflow with markdown files
+
+For complex issues, organize your content in markdown files before creating:
+
+```
+my-feature/
+├── description.md
+└── acceptance-criteria.md
+```
+
+Then create the issue:
+
+```bash
+jirahhh create \
+  --env production \
+  --project PROJ \
+  --type Story \
+  --summary "Implement new feature" \
+  --description my-feature/description.md \
+  --acceptance-criteria my-feature/acceptance-criteria.md
+```
+
+### Finding child issues with JQL
+
+When searching for child issues, note that the standard `parent = PROJ-123` syntax only works for native subtasks. For other parent-child relationships (like Stories under Epics), you may need to use the "Parent Link" custom field.
+
+**About Parent Link:** This is a custom field from [Advanced Roadmaps](https://support.atlassian.com/jira-software-cloud/docs/search-for-advanced-roadmaps-custom-fields-in-jql/) (formerly Portfolio for Jira), which is bundled with Jira Cloud Premium and Jira Data Center 8.15+. It enables hierarchies beyond native subtasks.
+
+```bash
+# Find subtasks of an issue (native Jira)
+jirahhh search "parent = PROJ-123" --env production
+
+# Find issues linked via Parent Link (Advanced Roadmaps)
+jirahhh search '"Parent Link" = PROJ-123' --env production
+```
+
+Use the `fields` command to discover the correct field names for your Jira instance.
+
 ## License
 
 Apache-2.0
