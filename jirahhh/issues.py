@@ -146,12 +146,12 @@ def view_issue(
         "key": issue.key,
         "id": issue.id,
         "self": issue.self,
-        "summary": issue.fields.summary,
+        "summary": getattr(issue.fields, "summary", None),
         "status": issue.fields.status.name if hasattr(issue.fields, "status") else None,
         "type": (
             issue.fields.issuetype.name if hasattr(issue.fields, "issuetype") else None
         ),
-        "description": issue.fields.description or "",
+        "description": getattr(issue.fields, "description", "") or "",
     }
 
     # Add assignee if present
