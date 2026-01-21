@@ -314,6 +314,33 @@ def get_fields(
     return {"total": len(fields), "fields": fields}
 
 
+def add_comment(
+    jira: JIRA,
+    issue_key: str,
+    body: str,
+) -> dict:
+    """
+    Add a comment to a Jira issue.
+
+    Args:
+        jira: JIRA client instance
+        issue_key: Issue key to comment on (e.g., PROJ-123)
+        body: Comment body in Jira wiki markup
+
+    Returns:
+        Dictionary with comment information
+    """
+    comment = jira.add_comment(issue_key, body)
+
+    return {
+        "id": comment.id,
+        "self": comment.self,
+        "author": comment.author.displayName if comment.author else None,
+        "body": comment.body,
+        "created": comment.created,
+    }
+
+
 def call_api(
     jira: JIRA, method: str, endpoint: str, data: Optional[dict] = None
 ) -> dict:

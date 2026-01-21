@@ -28,7 +28,7 @@ def convert_to_jira(text: str, file_path: Optional[str] = None) -> str:
 
         if ext == ".md":
             # Convert from markdown to Jira
-            return pypandoc.convert_file(file_path, "jira", format="gfm")
+            return pypandoc.convert_file(file_path, "jira", format="gfm+raw_attribute")
         elif ext == ".txt" or ext == "":
             # Assume it's already in Jira format
             return text
@@ -43,7 +43,7 @@ def convert_to_jira(text: str, file_path: Optional[str] = None) -> str:
 
         if ext == ".md":
             # Convert from markdown to Jira
-            return pypandoc.convert_file(text, "jira", format="gfm")
+            return pypandoc.convert_file(text, "jira", format="gfm+raw_attribute")
         elif ext == ".txt" or ext == "":
             # Read and return as-is
             with open(text, "r") as f:

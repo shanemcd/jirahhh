@@ -53,6 +53,7 @@ from .issues import (
     view_issue,
     search_issues,
     get_fields,
+    add_comment,
     call_api,
 )
 
@@ -321,6 +322,55 @@ def cmd_fields(args):
         sys.exit(1)
 
 
+def cmd_comment(args):
+    """Handle the 'comment' subcommand."""
+    # Get comment body from various sources
+    try:
+        body = read_description(inline=args.body, file_path=args.body_file)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    # Load configuration
+    config = load_config(args.config if hasattr(args, 'config') else None)
+
+    # Get API token
+    try:
+        api_token = get_api_token(args.env, config)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    # Get Jira URL from config (can be overridden by --url)
+    try:
+        jira_url = args.url if args.url else get_jira_url(args.env, config)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    # Get proxy URL from config (can be overridden by --proxy)
+    proxy_url = (
+        args.proxy
+        if hasattr(args, "proxy") and args.proxy
+        else get_proxy_url(args.env, config)
+    )
+
+    # Get Jira client
+    jira = get_jira_client(jira_url, api_token, proxy_url, config)
+
+    # Add the comment
+    try:
+        result = add_comment(
+            jira=jira,
+            issue_key=args.issue_key,
+            body=body,
+        )
+        print(json.dumps(result, indent=2))
+    except Exception as e:
+        print(f"Error adding comment: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
 def cmd_api(args):
     """Handle the 'api' subcommand."""
     # Load configuration
@@ -357,6 +407,17 @@ def cmd_api(args):
             data = json.loads(args.data)
         except json.JSONDecodeError as e:
             print(f"Error parsing JSON data: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    # Handle --body-file: read file, convert if .md, inject into data["body"]
+    if hasattr(args, "body_file") and args.body_file:
+        try:
+            body_content = read_description(file_path=args.body_file)
+            if data is None:
+                data = {}
+            data["body"] = body_content
+        except ValueError as e:
+            print(f"Error reading body file: {e}", file=sys.stderr)
             sys.exit(1)
 
     # Make API call
@@ -530,6 +591,34 @@ def main():
     )
     fields_parser.set_defaults(func=cmd_fields)
 
+    # Comment subcommand
+    comment_parser = subparsers.add_parser(
+        "comment",
+        help="Add a comment to a Jira issue",
+        epilog="Comment body can be provided via --body (inline text or file path) or --body-file",
+    )
+    comment_parser.add_argument(
+        "issue_key", help="Issue key to comment on (e.g., PROJ-123)"
+    )
+    comment_parser.add_argument(
+        "--body",
+        help="Comment body: inline Jira wiki markup, or path to file (.md auto-converts, .txt as-is)",
+    )
+    comment_parser.add_argument(
+        "--body-file",
+        help="File containing comment body in Jira wiki markup (use - for stdin)",
+    )
+    comment_parser.add_argument("--url", help="Jira URL (overrides config file)")
+    comment_parser.add_argument(
+        "--proxy", help="HTTP/HTTPS proxy URL (overrides config file)"
+    )
+    comment_parser.add_argument(
+        "--env",
+        required=True,
+        help="Environment name from config file (e.g., staging, production)",
+    )
+    comment_parser.set_defaults(func=cmd_comment)
+
     # API subcommand
     api_parser = subparsers.add_parser("api", help="Make a generic API call to Jira")
     api_parser.add_argument(
@@ -539,6 +628,10 @@ def main():
         "endpoint", help="API endpoint path (e.g., /rest/api/2/issue/PROJ-123/comment)"
     )
     api_parser.add_argument("--data", help="JSON data for POST/PUT requests")
+    api_parser.add_argument(
+        "--body-file",
+        help="File containing body content (.md auto-converts to Jira wiki markup). Injects into --data under 'body' key.",
+    )
     api_parser.add_argument("--url", help="Jira URL (overrides config file)")
     api_parser.add_argument(
         "--proxy", help="HTTP/HTTPS proxy URL (overrides config file)"
