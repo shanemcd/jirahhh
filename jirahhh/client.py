@@ -2,13 +2,69 @@
 Core Jira client functionality.
 """
 
+import logging
 import os
+import socket
+import time
 from pathlib import Path
 from jira import JIRA
 import yaml
 
+logger = logging.getLogger(__name__)
 
-def get_jira_client(jira_url: str, api_token: str, proxy_url: str = None) -> JIRA:
+# IPv4-only mode to avoid slow IPv6 connection attempts
+# Python tries IPv6 first sequentially, unlike browsers which use Happy Eyeballs
+_original_getaddrinfo = socket.getaddrinfo
+_ipv4_only_enabled = False
+
+
+def _ipv4_only_getaddrinfo(*args, **kwargs):
+    """Filter getaddrinfo results to IPv4 only."""
+    results = _original_getaddrinfo(*args, **kwargs)
+    return [r for r in results if r[0] == socket.AF_INET]
+
+
+def enable_ipv4_only():
+    """Force all socket connections to use IPv4 only.
+
+    Can be enabled via:
+    - Environment variable: JIRAHHH_IPV4_ONLY=1
+    - Config file: ipv4_only: true (at top level)
+    """
+    global _ipv4_only_enabled
+    if not _ipv4_only_enabled:
+        socket.getaddrinfo = _ipv4_only_getaddrinfo
+        _ipv4_only_enabled = True
+        logger.debug("Forcing IPv4-only connections")
+
+
+def should_use_ipv4_only(config: dict = None) -> bool:
+    """Check if IPv4-only mode should be enabled.
+
+    Checks (in order):
+    1. JIRAHHH_IPV4_ONLY environment variable (1/true/yes)
+    2. ipv4_only in config file
+
+    Returns:
+        True if IPv4-only mode should be enabled
+    """
+    # Check environment variable first
+    env_val = os.environ.get("JIRAHHH_IPV4_ONLY", "").lower()
+    if env_val in ("1", "true", "yes"):
+        return True
+    if env_val in ("0", "false", "no"):
+        return False
+
+    # Check config file
+    if config and config.get("ipv4_only"):
+        return True
+
+    return False
+
+
+def get_jira_client(
+    jira_url: str, api_token: str, proxy_url: str = None, config: dict = None
+) -> JIRA:
     """
     Create and return a Jira client instance.
 
@@ -17,6 +73,7 @@ def get_jira_client(jira_url: str, api_token: str, proxy_url: str = None) -> JIR
         api_token: The Jira API token
         proxy_url: Optional HTTP/HTTPS proxy URL (e.g., 'http://proxy.example.com:3128')
                    Can also be set via HTTPS_PROXY or HTTP_PROXY environment variables
+        config: Optional config dict for additional settings like ipv4_only
 
     Returns:
         JIRA client instance
@@ -30,7 +87,16 @@ def get_jira_client(jira_url: str, api_token: str, proxy_url: str = None) -> JIR
 
     jira_options = {"server": jira_url, "verify": True}
 
-    return JIRA(options=jira_options, token_auth=api_token, proxies=proxies)
+    # Check if IPv4-only mode should be enabled
+    if should_use_ipv4_only(config):
+        enable_ipv4_only()
+
+    logger.debug("Creating JIRA client for %s (proxy: %s)", jira_url, proxy_url or "none")
+    start = time.time()
+    client = JIRA(options=jira_options, token_auth=api_token, proxies=proxies)
+    elapsed = time.time() - start
+    logger.debug("JIRA client created in %.2fs", elapsed)
+    return client
 
 
 def load_config(config_path: Path = None) -> dict:

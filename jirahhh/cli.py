@@ -5,7 +5,37 @@ Main CLI entrypoint for jirahhh with subcommands.
 
 import argparse
 import json
+import logging
+import os
+import signal
 import sys
+
+# Handle broken pipe gracefully (e.g., when piped to head/grep)
+signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+
+
+def configure_logging(verbose: bool = False):
+    """Configure logging.
+
+    Args:
+        verbose: If True, set level to DEBUG. Otherwise WARNING.
+                 Can also be overridden via JIRAHHH_LOG_LEVEL env var.
+    """
+    env_level = os.environ.get("JIRAHHH_LOG_LEVEL")
+    if env_level:
+        level = getattr(logging, env_level.upper(), logging.WARNING)
+    else:
+        level = logging.DEBUG if verbose else logging.WARNING
+
+    # Force unbuffered output so logs appear immediately when run as subprocess
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%H:%M:%S",
+    ))
+    handler.stream.reconfigure(line_buffering=True)
+    logging.root.addHandler(handler)
+    logging.root.setLevel(level)
 
 from .client import (
     get_jira_client,
@@ -72,7 +102,7 @@ def cmd_create(args):
     )
 
     # Get Jira client
-    jira = get_jira_client(jira_url, api_token, proxy_url)
+    jira = get_jira_client(jira_url, api_token, proxy_url, config)
 
     # Get custom field IDs and security level from config
     custom_field_ids = get_custom_fields(config)
@@ -146,7 +176,7 @@ def cmd_update(args):
     )
 
     # Get Jira client
-    jira = get_jira_client(jira_url, api_token, proxy_url)
+    jira = get_jira_client(jira_url, api_token, proxy_url, config)
 
     # Get custom field IDs from config
     custom_field_ids = get_custom_fields(config)
@@ -194,7 +224,7 @@ def cmd_view(args):
     )
 
     # Get Jira client
-    jira = get_jira_client(jira_url, api_token, proxy_url)
+    jira = get_jira_client(jira_url, api_token, proxy_url, config)
 
     # Get custom field IDs from config
     custom_field_ids = get_custom_fields(config)
@@ -240,7 +270,7 @@ def cmd_search(args):
     )
 
     # Get Jira client
-    jira = get_jira_client(jira_url, api_token, proxy_url)
+    jira = get_jira_client(jira_url, api_token, proxy_url, config)
 
     # Search for issues
     try:
@@ -280,7 +310,7 @@ def cmd_fields(args):
     )
 
     # Get Jira client
-    jira = get_jira_client(jira_url, api_token, proxy_url)
+    jira = get_jira_client(jira_url, api_token, proxy_url, config)
 
     # Get fields
     try:
@@ -318,7 +348,7 @@ def cmd_api(args):
     )
 
     # Get Jira client
-    jira = get_jira_client(jira_url, api_token, proxy_url)
+    jira = get_jira_client(jira_url, api_token, proxy_url, config)
 
     # Parse JSON data if provided
     data = None
@@ -346,7 +376,12 @@ def main():
         description="Manage Jira issues with proper wiki markup formatting",
     )
 
-    # Global config option
+    # Global options
+    parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="Enable debug logging",
+    )
     parser.add_argument(
         "--config",
         help="Path to config file (default: ~/.config/jirahhh/config.yaml or .jira-config.yaml)",
@@ -516,6 +551,7 @@ def main():
     api_parser.set_defaults(func=cmd_api)
 
     args = parser.parse_args()
+    configure_logging(verbose=args.verbose)
     args.func(args)
 
 

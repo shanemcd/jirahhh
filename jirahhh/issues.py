@@ -2,8 +2,11 @@
 Functions for creating and updating Jira issues.
 """
 
+import logging
 from typing import Optional
 from jira import JIRA
+
+logger = logging.getLogger(__name__)
 
 
 def create_issue(
@@ -332,17 +335,22 @@ def call_api(
     if not endpoint.startswith("/"):
         endpoint = "/" + endpoint
 
+    url = jira._options["server"] + endpoint
+    logger.debug("Making %s request to %s", method, url)
+
     # Make the API call using the JIRA client's session
     if method == "GET":
-        response = jira._session.get(jira._options["server"] + endpoint)
+        response = jira._session.get(url)
     elif method == "POST":
-        response = jira._session.post(jira._options["server"] + endpoint, json=data)
+        response = jira._session.post(url, json=data)
     elif method == "PUT":
-        response = jira._session.put(jira._options["server"] + endpoint, json=data)
+        response = jira._session.put(url, json=data)
     elif method == "DELETE":
-        response = jira._session.delete(jira._options["server"] + endpoint)
+        response = jira._session.delete(url)
     else:
         raise ValueError(f"Unsupported HTTP method: {method}")
+
+    logger.debug("Response status: %d", response.status_code)
 
     # Raise for HTTP errors
     response.raise_for_status()
