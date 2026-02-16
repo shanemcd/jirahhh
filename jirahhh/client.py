@@ -63,7 +63,8 @@ def should_use_ipv4_only(config: dict = None) -> bool:
 
 
 def get_jira_client(
-    jira_url: str, api_token: str, proxy_url: str = None, config: dict = None
+    jira_url: str, api_token: str, proxy_url: str = None, config: dict = None,
+    email: str = None,
 ) -> JIRA:
     """
     Create and return a Jira client instance.
@@ -74,6 +75,7 @@ def get_jira_client(
         proxy_url: Optional HTTP/HTTPS proxy URL (e.g., 'http://proxy.example.com:3128')
                    Can also be set via HTTPS_PROXY or HTTP_PROXY environment variables
         config: Optional config dict for additional settings like ipv4_only
+        email: Optional email for basic auth (required for Jira Cloud)
 
     Returns:
         JIRA client instance
@@ -91,9 +93,17 @@ def get_jira_client(
     if should_use_ipv4_only(config):
         enable_ipv4_only()
 
-    logger.debug("Creating JIRA client for %s (proxy: %s)", jira_url, proxy_url or "none")
+    # Use basic auth (email + API token) for Jira Cloud, bearer token for Data Center
+    if email:
+        auth_kwargs = {"basic_auth": (email, api_token)}
+        auth_desc = f"basic auth ({email})"
+    else:
+        auth_kwargs = {"token_auth": api_token}
+        auth_desc = "bearer token"
+
+    logger.debug("Creating JIRA client for %s (proxy: %s, auth: %s)", jira_url, proxy_url or "none", auth_desc)
     start = time.time()
-    client = JIRA(options=jira_options, token_auth=api_token, proxies=proxies)
+    client = JIRA(options=jira_options, proxies=proxies, **auth_kwargs)
     elapsed = time.time() - start
     logger.debug("JIRA client created in %.2fs", elapsed)
     return client
@@ -186,6 +196,26 @@ def get_jira_url(env: str, config: dict = None) -> str:
         )
 
     return jira_url
+
+
+def get_email(env: str, config: dict = None) -> str:
+    """
+    Get email for basic auth from environment variable or config file.
+
+    Used for Jira Cloud which requires basic auth (email + API token)
+    instead of bearer token auth used by Data Center.
+
+    Args:
+        env: Environment name (e.g., cloud, production)
+        config: Optional configuration dictionary
+
+    Returns:
+        Email string or None if not configured
+    """
+    email = os.getenv("JIRA_EMAIL")
+    if not email and config:
+        email = config.get(env, {}).get("email")
+    return email
 
 
 def get_proxy_url(env: str, config: dict = None) -> str:
