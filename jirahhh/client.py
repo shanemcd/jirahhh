@@ -234,32 +234,53 @@ def get_proxy_url(env: str, config: dict = None) -> str:
     return None
 
 
-def get_custom_fields(config: dict = None) -> dict:
+def get_custom_fields(env: str, config: dict = None) -> dict:
     """
     Get custom field mappings from config file.
 
+    Checks per-environment custom_fields first, then falls back to
+    global custom_fields.
+
     Args:
+        env: Environment name (e.g., cloud, prod)
         config: Optional configuration dictionary
 
     Returns:
         Dictionary of custom field mappings
     """
-    if config and "custom_fields" in config:
-        return config["custom_fields"]
+    if config:
+        # Per-environment custom fields take priority
+        env_fields = config.get(env, {}).get("custom_fields")
+        if env_fields:
+            return env_fields
+        # Fall back to global custom fields
+        if "custom_fields" in config:
+            return config["custom_fields"]
     return {}
 
 
-def get_security_level(level_name: str, config: dict = None) -> str:
+def get_security_level(level_name: str, env: str = None, config: dict = None) -> str:
     """
     Get security level ID from config file.
 
+    Checks per-environment security_levels first, then falls back to
+    global security_levels.
+
     Args:
         level_name: Security level name (e.g., 'default', 'confidential')
+        env: Optional environment name (e.g., cloud, prod)
         config: Optional configuration dictionary
 
     Returns:
         Security level ID or None if not configured
     """
-    if config and "security_levels" in config:
-        return config["security_levels"].get(level_name)
+    if config:
+        # Per-environment security levels take priority
+        if env:
+            env_level = config.get(env, {}).get("security_levels", {}).get(level_name)
+            if env_level:
+                return env_level
+        # Fall back to global security levels
+        if "security_levels" in config:
+            return config["security_levels"].get(level_name)
     return None

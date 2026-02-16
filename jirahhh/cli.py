@@ -108,8 +108,8 @@ def cmd_create(args):
     jira = get_jira_client(jira_url, api_token, proxy_url, config, email=email)
 
     # Get custom field IDs and security level from config
-    custom_field_ids = get_custom_fields(config)
-    security_level_id = get_security_level("default", config)
+    custom_field_ids = get_custom_fields(args.env, config)
+    security_level_id = get_security_level("default", env=args.env, config=config)
 
     # Create the issue
     try:
@@ -183,7 +183,7 @@ def cmd_update(args):
     jira = get_jira_client(jira_url, api_token, proxy_url, config, email=email)
 
     # Get custom field IDs from config
-    custom_field_ids = get_custom_fields(config)
+    custom_field_ids = get_custom_fields(args.env, config)
 
     # Update the issue
     try:
@@ -232,7 +232,7 @@ def cmd_view(args):
     jira = get_jira_client(jira_url, api_token, proxy_url, config, email=email)
 
     # Get custom field IDs from config
-    custom_field_ids = get_custom_fields(config)
+    custom_field_ids = get_custom_fields(args.env, config)
 
     # View the issue
     try:
