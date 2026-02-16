@@ -43,6 +43,7 @@ from .client import (
     get_api_token,
     get_jira_url,
     get_proxy_url,
+    get_email,
     get_custom_fields,
     get_security_level,
 )
@@ -103,7 +104,8 @@ def cmd_create(args):
     )
 
     # Get Jira client
-    jira = get_jira_client(jira_url, api_token, proxy_url, config)
+    email = get_email(args.env, config)
+    jira = get_jira_client(jira_url, api_token, proxy_url, config, email=email)
 
     # Get custom field IDs and security level from config
     custom_field_ids = get_custom_fields(config)
@@ -177,7 +179,8 @@ def cmd_update(args):
     )
 
     # Get Jira client
-    jira = get_jira_client(jira_url, api_token, proxy_url, config)
+    email = get_email(args.env, config)
+    jira = get_jira_client(jira_url, api_token, proxy_url, config, email=email)
 
     # Get custom field IDs from config
     custom_field_ids = get_custom_fields(config)
@@ -225,7 +228,8 @@ def cmd_view(args):
     )
 
     # Get Jira client
-    jira = get_jira_client(jira_url, api_token, proxy_url, config)
+    email = get_email(args.env, config)
+    jira = get_jira_client(jira_url, api_token, proxy_url, config, email=email)
 
     # Get custom field IDs from config
     custom_field_ids = get_custom_fields(config)
@@ -271,7 +275,8 @@ def cmd_search(args):
     )
 
     # Get Jira client
-    jira = get_jira_client(jira_url, api_token, proxy_url, config)
+    email = get_email(args.env, config)
+    jira = get_jira_client(jira_url, api_token, proxy_url, config, email=email)
 
     # Search for issues
     try:
@@ -311,7 +316,8 @@ def cmd_fields(args):
     )
 
     # Get Jira client
-    jira = get_jira_client(jira_url, api_token, proxy_url, config)
+    email = get_email(args.env, config)
+    jira = get_jira_client(jira_url, api_token, proxy_url, config, email=email)
 
     # Get fields
     try:
@@ -356,7 +362,8 @@ def cmd_comment(args):
     )
 
     # Get Jira client
-    jira = get_jira_client(jira_url, api_token, proxy_url, config)
+    email = get_email(args.env, config)
+    jira = get_jira_client(jira_url, api_token, proxy_url, config, email=email)
 
     # Add the comment
     try:
@@ -398,7 +405,8 @@ def cmd_api(args):
     )
 
     # Get Jira client
-    jira = get_jira_client(jira_url, api_token, proxy_url, config)
+    email = get_email(args.env, config)
+    jira = get_jira_client(jira_url, api_token, proxy_url, config, email=email)
 
     # Parse JSON data if provided
     data = None
