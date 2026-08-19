@@ -236,20 +236,35 @@ def search_issues(
 
     results = []
     for issue in issues:
+        # Support both nested (Server) and flattened (Cloud enhanced search) structures
+        fields_obj = issue.fields if hasattr(issue, "fields") else issue
+
         item = {
             "key": issue.key,
-            "summary": issue.fields.summary,
+            "summary": getattr(fields_obj, "summary", None),
         }
 
         # Add optional fields if present
-        if hasattr(issue.fields, "status") and issue.fields.status:
-            item["status"] = issue.fields.status.name
-        if hasattr(issue.fields, "issuetype") and issue.fields.issuetype:
-            item["type"] = issue.fields.issuetype.name
-        if hasattr(issue.fields, "assignee") and issue.fields.assignee:
-            item["assignee"] = issue.fields.assignee.displayName
-        if hasattr(issue.fields, "priority") and issue.fields.priority:
-            item["priority"] = issue.fields.priority.name
+        status = getattr(fields_obj, "status", None)
+        if status:
+            item["status"] = status.name if hasattr(status, "name") else str(status)
+        issuetype = getattr(fields_obj, "issuetype", None)
+        if issuetype:
+            item["type"] = (
+                issuetype.name if hasattr(issuetype, "name") else str(issuetype)
+            )
+        assignee = getattr(fields_obj, "assignee", None)
+        if assignee:
+            item["assignee"] = (
+                assignee.displayName
+                if hasattr(assignee, "displayName")
+                else str(assignee)
+            )
+        priority = getattr(fields_obj, "priority", None)
+        if priority:
+            item["priority"] = (
+                priority.name if hasattr(priority, "name") else str(priority)
+            )
 
         results.append(item)
 
