@@ -1,6 +1,9 @@
 # Example Jira Configuration File
 # Copy this to .jira-config.yaml and fill in your values
 
+# Default environment when --env is not specified
+# default_env: staging
+
 # Configuration for different Jira environments
 # You can define multiple environments (e.g., staging, production, dev)
 

@@ -494,8 +494,8 @@ def main():
     )
     create_parser.add_argument(
         "--env",
-        required=True,
-        help="Environment name from config file (e.g., staging, production)",
+        default=None,
+        help="Environment name from config file (overrides default_env in config)",
     )
     create_parser.set_defaults(func=cmd_create)
 
@@ -525,8 +525,8 @@ def main():
     )
     update_parser.add_argument(
         "--env",
-        required=True,
-        help="Environment name from config file (e.g., staging, production)",
+        default=None,
+        help="Environment name from config file (overrides default_env in config)",
     )
     update_parser.set_defaults(func=cmd_update)
 
@@ -545,8 +545,8 @@ def main():
     )
     view_parser.add_argument(
         "--env",
-        required=True,
-        help="Environment name from config file (e.g., staging, production)",
+        default=None,
+        help="Environment name from config file (overrides default_env in config)",
     )
     view_parser.set_defaults(func=cmd_view)
 
@@ -573,8 +573,8 @@ def main():
     )
     search_parser.add_argument(
         "--env",
-        required=True,
-        help="Environment name from config file (e.g., staging, production)",
+        default=None,
+        help="Environment name from config file (overrides default_env in config)",
     )
     search_parser.set_defaults(func=cmd_search)
 
@@ -594,8 +594,8 @@ def main():
     )
     fields_parser.add_argument(
         "--env",
-        required=True,
-        help="Environment name from config file (e.g., staging, production)",
+        default=None,
+        help="Environment name from config file (overrides default_env in config)",
     )
     fields_parser.set_defaults(func=cmd_fields)
 
@@ -622,8 +622,8 @@ def main():
     )
     comment_parser.add_argument(
         "--env",
-        required=True,
-        help="Environment name from config file (e.g., staging, production)",
+        default=None,
+        help="Environment name from config file (overrides default_env in config)",
     )
     comment_parser.set_defaults(func=cmd_comment)
 
@@ -646,13 +646,21 @@ def main():
     )
     api_parser.add_argument(
         "--env",
-        required=True,
-        help="Environment name from config file (e.g., staging, production)",
+        default=None,
+        help="Environment name from config file (overrides default_env in config)",
     )
     api_parser.set_defaults(func=cmd_api)
 
     args = parser.parse_args()
     configure_logging(verbose=args.verbose)
+
+    # Use --env if provided, otherwise fall back to default_env in config
+    if not args.env:
+        config = load_config(args.config if hasattr(args, 'config') else None)
+        args.env = config.get("default_env")
+    if not args.env:
+        parser.error("--env is required (or set default_env in your config file)")
+
     args.func(args)
 
 

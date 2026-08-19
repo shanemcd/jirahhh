@@ -7,7 +7,7 @@ Utilities for creating and managing Jira issues with proper formatting and markd
 - Create, update, view, and search Jira issues from the command line
 - Automatic conversion of Markdown files to Jira wiki markup
 - Support for custom fields and security levels via configuration
-- Multiple environment support (staging, production, etc.)
+- Multiple environment support with configurable default (staging, production, etc.)
 - Proxy support for corporate networks
 - Generic API access for advanced use cases
 
@@ -53,6 +53,9 @@ jirahhh create --help
 Copy `.jira-config.example.yaml` to `.jira-config.yaml` and configure your Jira instances:
 
 ```yaml
+# Default environment when --env is not specified
+default_env: production
+
 staging:
   url: "https://your-jira-instance.example.com"
   token: "your-api-token-here"
@@ -76,6 +79,8 @@ security_levels:
   confidential: "10001"
 ```
 
+**Note:** If `default_env` is set, you can omit `--env` from all commands. Use `--env` to override the default for a specific command.
+
 ### Getting Your API Token
 
 Generate a Jira API token from: **Jira > Profile > Personal Access Tokens**
@@ -86,7 +91,6 @@ Generate a Jira API token from: **Jira > Profile > Personal Access Tokens**
 
 ```bash
 jirahhh create \
-  --env staging \
   --project PROJ \
   --type Task \
   --summary "My Task" \
@@ -103,21 +107,18 @@ jirahhh create \
 
 ```bash
 jirahhh update PROJ-123 \
-  --env production \
   --summary "Updated Title"
 ```
 
 ### View an issue
 
 ```bash
-jirahhh view PROJ-123 \
-  --env production
+jirahhh view PROJ-123
 ```
 
 View with specific fields:
 ```bash
 jirahhh view PROJ-123 \
-  --env staging \
   --fields "summary,status,description"
 ```
 
@@ -125,7 +126,6 @@ jirahhh view PROJ-123 \
 
 ```bash
 jirahhh search "project = PROJ AND status = Open" \
-  --env production \
   --max-results 10
 ```
 
@@ -133,7 +133,6 @@ jirahhh search "project = PROJ AND status = Open" \
 
 ```bash
 jirahhh fields \
-  --env production \
   --project PROJ \
   --type Epic
 ```
@@ -144,22 +143,18 @@ For advanced use cases not covered by the built-in commands, use the `api` subco
 
 ```bash
 # GET request - fetch comments on an issue
-jirahhh api GET /rest/api/2/issue/PROJ-123/comment \
-  --env production
+jirahhh api GET /rest/api/2/issue/PROJ-123/comment
 
 # POST request - add a comment to an issue
 jirahhh api POST /rest/api/2/issue/PROJ-123/comment \
-  --env production \
   --data '{"body": "This is a comment added via the API"}'
 
 # PUT request - update a comment
 jirahhh api PUT /rest/api/2/issue/PROJ-123/comment/12345 \
-  --env production \
   --data '{"body": "Updated comment text"}'
 
 # DELETE request - delete a comment
-jirahhh api DELETE /rest/api/2/issue/PROJ-123/comment/12345 \
-  --env production
+jirahhh api DELETE /rest/api/2/issue/PROJ-123/comment/12345
 ```
 
 Supported HTTP methods: `GET`, `POST`, `PUT`, `DELETE`
@@ -177,7 +172,7 @@ alias jirahhh='uvx --from "git+https://github.com/shanemcd/jirahhh" jirahhh'
 Then use it directly:
 
 ```bash
-jirahhh view PROJ-123 --env production
+jirahhh view PROJ-123
 ```
 
 ### Draft workflow with markdown files
@@ -194,7 +189,6 @@ Then create the issue:
 
 ```bash
 jirahhh create \
-  --env production \
   --project PROJ \
   --type Story \
   --summary "Implement new feature" \
@@ -210,10 +204,10 @@ When searching for child issues, note that the standard `parent = PROJ-123` synt
 
 ```bash
 # Find subtasks of an issue (native Jira)
-jirahhh search "parent = PROJ-123" --env production
+jirahhh search "parent = PROJ-123"
 
 # Find issues linked via Parent Link (Advanced Roadmaps)
-jirahhh search '"Parent Link" = PROJ-123' --env production
+jirahhh search '"Parent Link" = PROJ-123'
 ```
 
 Use the `fields` command to discover the correct field names for your Jira instance.
