@@ -129,6 +129,19 @@ jirahhh search "project = PROJ AND status = Open" \
   --max-results 10
 ```
 
+`search` posts to `/rest/api/3/search/jql` and follows `nextPageToken` until
+`--max-results` is reached, so results past the first page are not silently
+dropped. Jira Cloud no longer serves `/rest/api/2/search` (410 Gone as of
+CHANGE-2046), which is why this does not use the `jira` library's
+`search_issues()` helper.
+
+The output reports `returned` (how many issues are in this response) and
+`is_last` (whether Jira had more), because the v3 endpoint returns no total:
+
+```json
+{ "returned": 10, "is_last": false, "issues": [ ... ] }
+```
+
 ### Discover available fields
 
 ```bash

@@ -212,11 +212,54 @@ def view_issue(
     return result
 
 
+SEARCH_PATH = "/rest/api/3/search/jql"
+DEFAULT_SEARCH_FIELDS = "summary,status,issuetype,assignee"
+# Jira Cloud caps a page well above this; 100 keeps responses small and lets a
+# caller stop early without paying for issues it will discard.
+PAGE_SIZE = 100
+
+
+def _shape_issue(issue: dict) -> dict:
+    """Turn one /rest/api/3/search/jql issue into the flat shape callers expect."""
+    fields = issue.get("fields") or {}
+
+    item = {"key": issue.get("key"), "summary": fields.get("summary")}
+
+    status = fields.get("status")
+    if status:
+        item["status"] = status.get("name") if isinstance(status, dict) else str(status)
+    issuetype = fields.get("issuetype")
+    if issuetype:
+        item["type"] = (
+            issuetype.get("name") if isinstance(issuetype, dict) else str(issuetype)
+        )
+    assignee = fields.get("assignee")
+    if assignee:
+        item["assignee"] = (
+            assignee.get("displayName")
+            if isinstance(assignee, dict)
+            else str(assignee)
+        )
+    priority = fields.get("priority")
+    if priority:
+        item["priority"] = (
+            priority.get("name") if isinstance(priority, dict) else str(priority)
+        )
+
+    return item
+
+
 def search_issues(
     jira: JIRA, jql: str, fields: Optional[str] = None, max_results: int = 50
 ) -> dict:
     """
     Search for Jira issues using JQL.
+
+    Posts to `/rest/api/3/search/jql`, the only search endpoint Jira Cloud still
+    serves: `/rest/api/2/search` answers 410 Gone since CHANGE-2046, and
+    `jira.search_issues()` (the python client helper) still calls it. Paging is
+    token-based (`nextPageToken`), not `startAt`, and the response carries no
+    `total` — hence `returned` rather than a count Jira never sent.
 
     Args:
         jira: JIRA client instance
@@ -225,50 +268,44 @@ def search_issues(
         max_results: Maximum number of results to return (default: 50)
 
     Returns:
-        Dictionary with search results
+        Dictionary with search results: `issues` (list), `returned`, `is_last`
     """
-    # Execute JQL search
-    issues = jira.search_issues(
-        jql_str=jql,
-        maxResults=max_results,
-        fields=fields if fields else "summary,status,issuetype,assignee",
-    )
+    server = jira._options["server"].rstrip("/")
+    session = jira._session
+
+    field_list = [f for f in (fields or DEFAULT_SEARCH_FIELDS).split(",") if f]
+    body = {"jql": jql, "fields": field_list, "maxResults": min(max_results, PAGE_SIZE)}
+    if not max_results:
+        body.pop("maxResults")
 
     results = []
-    for issue in issues:
-        # Support both nested (Server) and flattened (Cloud enhanced search) structures
-        fields_obj = issue.fields if hasattr(issue, "fields") else issue
+    page_token = None
+    is_last = False
 
-        item = {
-            "key": issue.key,
-            "summary": getattr(fields_obj, "summary", None),
-        }
-
-        # Add optional fields if present
-        status = getattr(fields_obj, "status", None)
-        if status:
-            item["status"] = status.name if hasattr(status, "name") else str(status)
-        issuetype = getattr(fields_obj, "issuetype", None)
-        if issuetype:
-            item["type"] = (
-                issuetype.name if hasattr(issuetype, "name") else str(issuetype)
-            )
-        assignee = getattr(fields_obj, "assignee", None)
-        if assignee:
-            item["assignee"] = (
-                assignee.displayName
-                if hasattr(assignee, "displayName")
-                else str(assignee)
-            )
-        priority = getattr(fields_obj, "priority", None)
-        if priority:
-            item["priority"] = (
-                priority.name if hasattr(priority, "name") else str(priority)
+    while True:
+        if page_token:
+            body["nextPageToken"] = page_token
+        # jira's session wrapper already injects its own timeout.
+        response = session.post(f"{server}{SEARCH_PATH}", json=body)
+        if response.status_code >= 400:
+            raise RuntimeError(
+                f"search failed: HTTP {response.status_code} "
+                f"{response.text[:400]}"
             )
 
-        results.append(item)
+        payload = response.json()
+        for issue in payload.get("issues") or []:
+            results.append(_shape_issue(issue))
 
-    return {"total": len(results), "issues": results}
+        page_token = payload.get("nextPageToken")
+        is_last = payload.get("isLast", not page_token)
+        if is_last or not page_token or not payload.get("issues"):
+            break
+        if len(results) >= max_results:
+            break
+        body["maxResults"] = min(max_results - len(results), PAGE_SIZE)
+
+    return {"returned": len(results), "is_last": is_last, "issues": results}
 
 
 def get_fields(
